@@ -1,19 +1,36 @@
 import React, { useState } from "react";
+import axios from "axios";
 
 const AddTask = () => {
   const [taskName, setTaskName] = useState("");
   const [taskDescription, setTaskDescription] = useState("");
-  const taskStorage = JSON.parse(localStorage.getItem("taskStore")) || [];
+  const [dueDate, setDueDate] = useState("");
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    if (taskName && taskDescription) {
-      const newTask = { id: Date.now(), taskName, taskDescription };
-      taskStorage.push(newTask);
-      localStorage.setItem("taskStore", JSON.stringify(taskStorage));
+    if (taskName && taskDescription && dueDate) {
+      try {
+        const formattedDueDate = new Date(dueDate).toISOString().split("T")[0];
 
-      // setTaskName("");
-      // setTaskDescription("");
+        await axios.post(
+          "http://localhost:5000/api/tasks",
+          {
+            title: taskName,
+            description: taskDescription,
+            dueDate: formattedDueDate,
+          },
+          {
+            headers: {
+              Authorization: `Bearer ${localStorage.getItem("token")}`,
+            },
+          }
+        );
+        setTaskName("");
+        setTaskDescription("");
+        setDueDate("");
+      } catch (error) {
+        console.error("Error adding task:", error);
+      }
     }
   };
 
@@ -41,6 +58,17 @@ const AddTask = () => {
             placeholder="Enter task description"
             value={taskDescription}
             onChange={(e) => setTaskDescription(e.target.value)}
+            className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-600"
+          />
+        </div>
+        <div className="mb-4">
+          <label className="block mb-2 text-sm font-medium text-gray-600">
+            Due Date
+          </label>
+          <input
+            type="date"
+            value={dueDate}
+            onChange={(e) => setDueDate(e.target.value)}
             className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-600"
           />
         </div>

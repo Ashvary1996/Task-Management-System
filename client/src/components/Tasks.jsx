@@ -1,48 +1,114 @@
 import React, { useState, useEffect } from "react";
+import axios from "axios";
 
 function Tasks() {
-  const [tasks, setTasks] = useState(
-    JSON.parse(localStorage.getItem("taskStore")) || []
-  );
+  const [tasks, setTasks] = useState([]);
 
   useEffect(() => {
-    localStorage.setItem("taskStore", JSON.stringify(tasks));
-  }, [tasks]);
+    const fetchTasks = async () => {
+      try {
+        const response = await axios.get("http://localhost:5000/api/tasks", {
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem("token")}`,
+          },
+        });
+        setTasks(response.data);
+        console.log(response.data);
+      } catch (error) {
+        console.error("Error fetching tasks:", error);
+      }
+    };
 
-  const handleDelete = (id) => {
-    const updatedTasks = tasks.filter((task) => task.id !== id);
-    setTasks(updatedTasks);
-  };
+    fetchTasks();
+  }, []);
 
-  const handleEdit = (id) => {
-    const task = tasks.find((task) => task.id === id);
-    if (!task) return;
-
-    const newTaskName = prompt("Edit Task Name:", task.taskName);
-    const newTaskDescription = prompt(
-      "Edit Task Description:",
-      task.taskDescription
-    );
-
-    if (newTaskName && newTaskDescription) {
-      const updatedTasks = tasks.map((task) =>
-        task.id === id
-          ? {
-              ...task,
-              taskName: newTaskName,
-              taskDescription: newTaskDescription,
-            }
-          : task
-      );
-      setTasks(updatedTasks);
+  const handleDelete = async (id) => {
+    try {
+      await axios.delete(`http://localhost:5000/api/tasks/${id}`, {
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem("token")}`,
+        },
+      });
+      setTasks(tasks.filter((task) => task.id !== id));
+    } catch (error) {
+      console.error("Error deleting task:", error);
     }
   };
 
-  const handleToggleComplete = (id) => {
-    const updatedTasks = tasks.map((task) =>
-      task.id === id ? { ...task, completed: !task.completed } : task
+  const handleEdit = async (id) => {
+    const task = tasks.find((task) => task.id === id);
+    if (!task) return;
+
+    const newTaskName = prompt("Edit Task Name:", task.title);
+    const newTaskDescription = prompt(
+      "Edit Task Description:",
+      task.description
     );
-    setTasks(updatedTasks);
+    const newDueDate = prompt("Edit Due Date (YYYY-MM-DD):", task.dueDate);
+
+    if (newTaskName && newTaskDescription && newDueDate) {
+      try {
+        const response = await axios.put(
+          `http://localhost:5000/api/tasks/${id}`,
+          {
+            title: newTaskName,
+            description: newTaskDescription,
+            dueDate: newDueDate,
+            status: task.status,
+          },
+          {
+            headers: {
+              Authorization: `Bearer ${localStorage.getItem("token")}`,
+            },
+          }
+        );
+
+        const updatedTasks = tasks.map((task) =>
+          task.id === id
+            ? {
+                ...task,
+                title: newTaskName,
+                description: newTaskDescription,
+                dueDate: newDueDate,
+              }
+            : task
+        );
+        setTasks(updatedTasks);
+      } catch (error) {
+        console.error("Error updating task:", error);
+      }
+    }
+  };
+
+  const handleToggleComplete = async (id) => {
+    const task = tasks.find((task) => task.id === id);
+    if (!task) return;
+
+    const newStatus = task.status === "completed" ? "pending" : "completed";
+
+    try {
+      await axios.put(
+        `http://localhost:5000/api/tasks/${id}`,
+        {
+          title: task.title,
+          description: task.description,
+          dueDate: task.dueDate,
+          status: newStatus,
+        },
+        {
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem("token")}`,
+          },
+        }
+      );
+
+      const updatedTasks = tasks.map((task) =>
+        task.id === id ? { ...task, status: newStatus } : task
+      );
+      setTasks(updatedTasks);
+    } catch (error) {
+      console.error("Error toggling task completion:", error);
+    }
   };
 
   return (
@@ -58,40 +124,45 @@ function Tasks() {
             <li
               key={task.id}
               className={`p-4 rounded-lg shadow flex flex-col sm:flex-row items-center justify-between ${
-                task.completed ? "bg-green-100" : "bg-gray-100"
+                task.status === "completed" ? "bg-green-100" : "bg-gray-100"
               }`}
             >
               <div className="flex items-center space-x-4 flex-1">
                 <span className="text-lg font-semibold">{index + 1}</span>
                 <input
                   type="checkbox"
-                  checked={task.completed}
+                  checked={task.status === "completed"}
                   onChange={() => handleToggleComplete(task.id)}
                   className="h-5 w-5 rounded focus:ring-teal-500"
                 />
                 <div className="flex-1">
                   <h3
                     className={`text-lg font-bold ${
-                      task.completed ? "line-through" : ""
+                      task.status === "completed" ? "line-through" : ""
                     }`}
                   >
-                    {task.taskName}
+                    {task.title}
                   </h3>
                   <p
                     className={`text-sm ${
-                      task.completed ? "line-through text-gray-500" : ""
+                      task.status === "completed"
+                        ? "line-through text-gray-500"
+                        : ""
                     }`}
                   >
-                    {task.taskDescription}
+                    {task.description}
+                  </p>
+                  <p className="text-sm text-gray-500">
+                    Due Date: {new Date(task.dueDate).toLocaleDateString()}
                   </p>
                 </div>
               </div>
               <div className="flex space-x-2 mt-4 sm:mt-0">
                 <button
                   onClick={() => handleEdit(task.id)}
-                  disabled={task.completed}
+                  disabled={task.status === "completed"}
                   className={`px-3 py-1 rounded ${
-                    task.completed
+                    task.status === "completed"
                       ? "bg-gray-300 text-gray-600 cursor-not-allowed"
                       : "bg-blue-500 text-white hover:bg-blue-600"
                   }`}

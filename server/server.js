@@ -3,11 +3,14 @@ const dotenv = require("dotenv");
 const userRoutes = require("./src/routes/userRoutes");
 const taskRoutes = require("./src/routes/taskRoutes");
 const db = require("./src/config/db");
+const cors = require("cors");
 
 dotenv.config();
 
 const app = express();
+
 app.use(express.json());
+app.use(cors());
 
 db.getConnection()
   .then(() => console.log("MySQL connected"))
