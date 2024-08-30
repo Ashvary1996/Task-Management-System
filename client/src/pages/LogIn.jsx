@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import axios from "axios";
+import { toast, ToastContainer } from "react-toastify";
 
 const Login = () => {
   const [email, setEmail] = useState("");
@@ -9,24 +10,35 @@ const Login = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    try {
-      const response = await axios.post(
-        "http://localhost:5000/api/users/login",
-        {
-          email,
-          password,
-        }
-      );
-      if (response.status === 200) {
-        localStorage.setItem("token", response.data.token);
-        localStorage.setItem("username", response.data.username);
 
-        alert("Login successful!");
-        navigate("/home");
+    if (!email || !password)
+      toast.warn("Email & Password Required!", {
+        autoClose: 5000,
+      });
+    else {
+      try {
+        const response = await axios.post(
+          `${process.env.REACT_APP_BACKEND_URL}/api/users/login`,
+          {
+            email,
+            password,
+          }
+        );
+        if (response.status === 200) {
+          localStorage.setItem("token", response.data.token);
+          localStorage.setItem("username", response.data.username);
+
+          toast.success("Login successful!", {
+            autoClose: 1000,
+            onClose: () => navigate("/home"),
+          });
+        }
+      } catch (error) {
+        console.error("Error logging in:", error);
+        toast.error("Login failed. Please check your credentials.", {
+          autoClose: 5000,
+        });
       }
-    } catch (error) {
-      console.error("Error logging in:", error);
-      alert("Login failed. Please check your credentials.");
     }
   };
 
@@ -73,6 +85,7 @@ const Login = () => {
           </span>
         </form>
       </div>
+      <ToastContainer />
     </div>
   );
 };

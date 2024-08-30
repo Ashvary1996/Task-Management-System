@@ -1,5 +1,7 @@
 import React, { useState } from "react";
 import axios from "axios";
+import { toast, ToastContainer } from "react-toastify";
+import 'react-toastify/dist/ReactToastify.css';
 
 const AddTask = () => {
   const [taskName, setTaskName] = useState("");
@@ -13,7 +15,7 @@ const AddTask = () => {
         const formattedDueDate = new Date(dueDate).toISOString().split("T")[0];
 
         await axios.post(
-          "http://localhost:5000/api/tasks",
+          `${process.env.REACT_APP_BACKEND_URL}/api/tasks`,
           {
             title: taskName,
             description: taskDescription,
@@ -25,12 +27,24 @@ const AddTask = () => {
             },
           }
         );
+
         setTaskName("");
         setTaskDescription("");
         setDueDate("");
+
+        toast.success("Task added successfully!", {
+          autoClose: 3000,
+        });
       } catch (error) {
         console.error("Error adding task:", error);
+        toast.error("Failed to add task. Please try again.", {
+          autoClose: 5000,
+        });
       }
+    } else {
+      toast.warn("Please fill in all fields.", {
+        autoClose: 4000,
+      });
     }
   };
 
@@ -79,6 +93,7 @@ const AddTask = () => {
           Add Task
         </button>
       </form>
+      <ToastContainer />
     </div>
   );
 };

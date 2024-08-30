@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from "react";
 import axios from "axios";
+import { toast, ToastContainer } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
 
 function Tasks() {
   const [tasks, setTasks] = useState([]);
@@ -7,15 +9,20 @@ function Tasks() {
   useEffect(() => {
     const fetchTasks = async () => {
       try {
-        const response = await axios.get("http://localhost:5000/api/tasks", {
-          headers: {
-            Authorization: `Bearer ${localStorage.getItem("token")}`,
-          },
-        });
+        const response = await axios.get(
+          `${process.env.REACT_APP_BACKEND_URL}/api/tasks`,
+          {
+            headers: {
+              Authorization: `Bearer ${localStorage.getItem("token")}`,
+            },
+          }
+        );
         setTasks(response.data);
-        console.log(response.data);
       } catch (error) {
         console.error("Error fetching tasks:", error);
+        toast.error("Failed to fetch tasks. Please try again.", {
+          autoClose: 4000,
+        });
       }
     };
 
@@ -24,14 +31,23 @@ function Tasks() {
 
   const handleDelete = async (id) => {
     try {
-      await axios.delete(`http://localhost:5000/api/tasks/${id}`, {
-        headers: {
-          Authorization: `Bearer ${localStorage.getItem("token")}`,
-        },
-      });
+      await axios.delete(
+        `${process.env.REACT_APP_BACKEND_URL}/api/tasks/${id}`,
+        {
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem("token")}`,
+          },
+        }
+      );
       setTasks(tasks.filter((task) => task.id !== id));
+      toast.warn("Task deleted successfully!", {
+        autoClose: 3000,
+      });
     } catch (error) {
       console.error("Error deleting task:", error);
+      toast.error("Failed to delete task. Please try again.", {
+        autoClose: 4000,
+      });
     }
   };
 
@@ -48,8 +64,8 @@ function Tasks() {
 
     if (newTaskName && newTaskDescription && newDueDate) {
       try {
-        const response = await axios.put(
-          `http://localhost:5000/api/tasks/${id}`,
+        await axios.put(
+          `${process.env.REACT_APP_BACKEND_URL}/api/tasks/${id}`,
           {
             title: newTaskName,
             description: newTaskDescription,
@@ -74,9 +90,19 @@ function Tasks() {
             : task
         );
         setTasks(updatedTasks);
+        toast.info("Task updated successfully!", {
+          autoClose: 3000,
+        });
       } catch (error) {
         console.error("Error updating task:", error);
+        toast.error("Failed to update task. Please try again.", {
+          autoClose: 4000,
+        });
       }
+    } else {
+      toast.error("Please provide valid inputs for all fields.", {
+        autoClose: 4000,
+      });
     }
   };
 
@@ -87,12 +113,16 @@ function Tasks() {
     const newStatus = task.status === "completed" ? "pending" : "completed";
 
     try {
+      const formattedDueDate = new Date(task.dueDate)
+        .toISOString()
+        .split("T")[0];
+
       await axios.put(
-        `http://localhost:5000/api/tasks/${id}`,
+        `${process.env.REACT_APP_BACKEND_URL}/api/tasks/${id}`,
         {
           title: task.title,
           description: task.description,
-          dueDate: task.dueDate,
+          dueDate: formattedDueDate,
           status: newStatus,
         },
         {
@@ -106,8 +136,14 @@ function Tasks() {
         task.id === id ? { ...task, status: newStatus } : task
       );
       setTasks(updatedTasks);
+      toast.info("Task status updated successfully!", {
+        autoClose: 3000,
+      });
     } catch (error) {
       console.error("Error toggling task completion:", error);
+      toast.error("Failed to update task status. Please try again.", {
+        autoClose: 4000,
+      });
     }
   };
 
@@ -133,7 +169,7 @@ function Tasks() {
                   type="checkbox"
                   checked={task.status === "completed"}
                   onChange={() => handleToggleComplete(task.id)}
-                  className="h-5 w-5 rounded focus:ring-teal-500"
+                  className="h-5 w-5 rounded focus:ring-teal-500 cursor-pointer"
                 />
                 <div className="flex-1">
                   <h3
@@ -180,6 +216,7 @@ function Tasks() {
           ))}
         </ul>
       )}
+      <ToastContainer />
     </div>
   );
 }
